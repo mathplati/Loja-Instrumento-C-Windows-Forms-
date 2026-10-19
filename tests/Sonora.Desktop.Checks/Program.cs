@@ -125,15 +125,28 @@ internal static class Program
                 ExpectOrderTotal(salePage, 2150.10m);
             });
 
-            // Não aciona CompleteSale: esse botão abre uma confirmação modal. O pedido
-            // equivalente é gravado pelo serviço real, somente no arquivo temporário.
-            var recorded = store.Create(new SaleRequest(customer.Text, (PaymentMethod)payment.SelectedIndex, discount.Value,
-                [new("guitar-strato", 1), new("acoustic-folk", 1)]));
-            Check("serviço registra a venda e preserva o total ao reabrir os dados", () =>
+            Sale recorded = null!;
+            Check("botão Finalizar venda confirma o pedido real e limpa o formulário", () =>
             {
-                Expect(recorded.Total == 2150.10m, "O serviço divergiu do total exibido no formulário.");
+                var expectedCustomer = customer.Text;
+                NativeDialogs.Run(() => Click(salePage, "CompleteSale"), new DialogStep("Tudo em harmonia", dialog =>
+                {
+                    var message = NativeDialogs.Describe(dialog);
+                    Expect(message.Contains("Venda registrada!", StringComparison.Ordinal), "A confirmação não anunciou o registro da venda.");
+                    Expect(message.Contains(expectedCustomer, StringComparison.Ordinal), "A confirmação não contém o cliente informado.");
+                    Expect(message.Contains(2150.10m.ToString("C2", Brazilian), StringComparison.Ordinal), "A confirmação não contém o total esperado.");
+                    NativeDialogs.Capture(dialog, screenshots is null ? null : Path.Combine(screenshots, "05-venda-confirmada.png"));
+                    NativeDialogs.Confirm(dialog);
+                }));
+                recorded = store.List().Single();
+                Expect(recorded.Customer == expectedCustomer, "A venda persistiu com outro cliente.");
+                Expect(recorded.Total == 2150.10m && recorded.Quantity == 2, "O pedido gravado divergiu dos instrumentos e do total exibidos.");
                 var reopened = new SaleStore(Path.Combine(temporaryData, "sales.json")).List().Single();
                 Expect(reopened.Id == recorded.Id && reopened.Total == recorded.Total, "A venda não persistiu corretamente.");
+                Expect(!salePage.HasPendingOrder, "A venda concluída manteve instrumentos no carrinho.");
+                Expect(customer.Text.Length == 0 && discount.Value == 0 && payment.SelectedIndex == 0, "A venda concluída não limpou os campos do pedido.");
+                Expect(!Find<Button>(salePage, "CompleteSale").Enabled, "A venda concluída manteve a finalização habilitada.");
+                ExpectOrderTotal(salePage, 0m);
             });
 
             Click(menu, "Nav_reports");
