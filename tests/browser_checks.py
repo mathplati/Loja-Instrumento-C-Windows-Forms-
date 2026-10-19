@@ -19,6 +19,7 @@ with sync_playwright() as p:
     expect(page.locator("#splash")).to_be_visible()
     page.screenshot(path=str(output / "01-abertura.png"))
     expect(page.locator("#splash")).to_have_class("splash hidden")
+    expect(page.locator("#splash")).to_have_css("opacity", "0")
     expect(page.get_by_role("heading", name="Bom som. Bons negócios.")).to_be_visible()
     expect(page.get_by_text("Sua primeira venda merece um bis.")).to_be_visible()
     page.screenshot(path=str(output / "02-menu-vazio.png"), full_page=True)
@@ -81,6 +82,7 @@ with sync_playwright() as p:
 
     page.reload()
     expect(page.locator("#main tbody tr")).to_have_count(1)
+    expect(page.locator("#splash")).to_have_css("opacity", "0")
     page.locator('[data-nav="home"]').click()
     expect(page.locator(".metric").first).to_contain_text("2.150,10")
     page.screenshot(path=str(output / "07-menu.png"), full_page=True)
