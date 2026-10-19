@@ -13,9 +13,9 @@ Os nomes e RMs dependem da equipe real. O código inicial não substitui os comm
 
 ## Branches
 
-`main` contém os três commits iniciais da estrutura. `dev` reúne a implementação em commits pequenos e descritivos. As branches estão locais; o envio ao GitHub não foi feito automaticamente.
+`main` contém os três commits iniciais da estrutura. `dev` reúne a implementação em commits pequenos e descritivos. Ambas já foram enviadas ao GitHub. O desenvolvimento desktop, os testes e o workflow Windows estão em `dev`.
 
-Depois de revisar os arquivos, o Tech Lead pode publicar as branches:
+Para enviar novos commits depois da revisão:
 
 ```bash
 git push -u origin main
@@ -37,8 +37,12 @@ Abrir PR com destino `dev`, explicar o comportamento e as verificações executa
 ## Antes da entrega
 
 - Preencher `integrantes.txt` com todos os nomes e RMs.
-- Confirmar em Settings que o repositório é público e pertence à organização exigida.
+- O repositório público atual é `mathplati/Loja-Instrumento-C-Windows-Forms-`, na conta pessoal `mathplati`. O usuário orientou manter este mesmo repositório. Isso é uma escolha diferente da organização pedida no enunciado original.
 - Conceder Write aos integrantes.
 - Conferir os PRs para `dev` e o histórico de cada tarefa.
 - Executar o roteiro Windows em `docs/VALIDACAO.md`.
 - Guardar os dados de demonstração separados dos dados reais.
+
+## Pendências da equipe
+
+Os nomes, RMs, usuários do GitHub e responsáveis reais ainda não foram informados. Os commits atuais utilizam a identidade Git já configurada; não comprovam participação individual da equipe. Cada integrante precisa realizar seus próprios commits e PRs para cumprir o fluxo acadêmico. Até a auditoria realizada nesta implementação, o repositório não tinha PRs abertos ou fechados nem revisão de colegas registrada. Não foram criadas aprovações ou identidades fictícias.

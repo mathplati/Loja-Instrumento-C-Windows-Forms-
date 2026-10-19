@@ -7,7 +7,8 @@ Integrantes (preencher com os dados reais antes da entrega):
 RM: PENDENTE | Nome: PENDENTE
 
 Pendências do Tech Lead:
-- Confirmar que o repositório está público.
-- Confirmar a organização do GitHub exigida pelo enunciado.
+- Repositório público confirmado durante a implementação.
+- Manter este mesmo repositório na conta mathplati, conforme orientação do usuário.
+- O enunciado original pede organização; a localização atual é uma escolha do usuário.
 - Adicionar todos os integrantes com permissão Write.
 - Preencher todos os RMs e nomes reais neste arquivo.

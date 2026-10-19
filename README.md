@@ -2,7 +2,9 @@
 
 Sistema acadêmico de vendas em C# / .NET 8. A entrega desktop utiliza Windows Forms. Uma interface web de apoio permite explorar o mesmo catálogo, serviço de vendas e relatório no Linux.
 
-[Abrir galeria de capturas da interface web de apoio](docs/GALERIA.md)
+A entrega principal é o Windows Forms. O workflow [Windows Forms no GitHub Actions](https://github.com/mathplati/Loja-Instrumento-C-Windows-Forms-/actions) compila e verifica as janelas no Windows e disponibiliza o pacote e as capturas nativas nos artefatos da execução, quando as etapas correspondentes terminam com sucesso.
+
+[Galeria da interface web de apoio](docs/GALERIA.md) (estas imagens não representam as janelas nativas).
 
 ## Estrutura
 
@@ -10,22 +12,25 @@ Sistema acadêmico de vendas em C# / .NET 8. A entrega desktop utiliza Windows F
 - `src/Sonora.Desktop`: Splash, Menu, Venda e Relatório em Windows Forms.
 - `src/Sonora.Preview`: interface web de apoio, com o mesmo serviço C#.
 - `tests/Sonora.Checks`: verificações executáveis sem pacotes externos.
+- `tests/Sonora.Desktop.Checks`: verificações dos formulários e capturas reais no Windows.
 
 ## Funcionalidades
 
 - Splash com abertura e transição para o menu.
 - Menu com receita do dia, quantidade de vendas, instrumentos e ticket médio.
+- Navegação lateral em uma janela única, preservando o pedido ao alternar entre páginas.
 - Catálogo de oito instrumentos, pesquisa por nome/marca e filtro de categoria.
 - Carrinho com quantidades, cliente, Pix, dinheiro, débito ou crédito e desconto de até 30%.
 - Finalização com valores calculados no serviço C#, sem aceitar preços enviados pelo cliente.
 - Relatório por período e pagamento, detalhes do pedido e exportação CSV.
+- Detalhes acessíveis por botão, Enter ou dois cliques; filtros alterados exigem atualização antes de exportar.
 - Dados gravados em JSON por substituição atômica. Um arquivo inválido é reportado e preservado.
 
 Não há cobrança ou integração financeira: a forma de pagamento é registrada no pedido. Não há controle de estoque nesta entrega.
 
 ## Executar no Windows (entrega principal)
 
-Instale o **Visual Studio 2022 17.11+** com **Desenvolvimento para desktop com .NET** e o SDK .NET 8. Abra `Sonora.sln`, escolha `Sonora.Desktop` como projeto de inicialização e execute com F5.
+Em Windows 10/11 x64, instale o **Visual Studio 2022 17.11+** com **Desenvolvimento para desktop com .NET** e o SDK .NET 8. Abra `Sonora.sln`, escolha `Sonora.Desktop` como projeto de inicialização e execute com F5.
 
 Pelo terminal com .NET 8:
 
@@ -72,6 +77,14 @@ dotnet run --project tests/Sonora.Checks -c Release
 
 O projeto `Sonora.Checks` é um verificador de domínio executável, sem framework externo. Use `dotnet run`; `dotnet test` não executa essas verificações. Qualquer falha produz saída 1.
 
+No Windows, valide os formulários nativos e gere capturas com dados temporários:
+
+```powershell
+dotnet run --project tests/Sonora.Desktop.Checks -c Release -- --screenshots artifacts/windows-native
+```
+
+Essas verificações abrem a Splash, navegam pelas páginas, montam um pedido, conferem o total, preservam o carrinho, consultam uma venda gravada pelo serviço e verificam os filtros. Também conferem se os controles podem ser alcançados em dois tamanhos de janela. Elas não acionam a finalização modal nem o seletor de arquivo; esses passos continuam no roteiro manual. `Form.DrawToBitmap` produz as imagens das janelas reais. O teste usa exclusivamente um diretório temporário.
+
 Teste opcional da interface de apoio no Linux, com Python e Chromium instalados:
 
 ```bash
@@ -87,7 +100,7 @@ O roteiro cria um arquivo temporário, sobe o serviço na porta 5081, realiza um
 - Interface de apoio: `data/sales.json`, ignorado pelo Git. `SONORA_DATA_FILE` permite usar outro arquivo, especialmente nos testes.
 - Datas e indicadores usam o fuso `America/Sao_Paulo`.
 - Valores usam `decimal` e descontos arredondados para centavos.
-- Este projeto é local e de um único processo gravador por arquivo. Não compartilhe o mesmo JSON entre instâncias simultâneas; uma implantação multiusuário exigiria banco de dados, autenticação e transações.
+- Este projeto é local e de um único processo gravador por arquivo. Instâncias do serviço dentro do mesmo processo compartilham a proteção do arquivo. Não compartilhe o mesmo JSON entre processos simultâneos; uma implantação multiusuário exigiria banco de dados, autenticação e transações.
 - Preços, marcas e catálogo são demonstrativos.
 
 Consulte [validação e roteiro Windows](docs/VALIDACAO.md) para distinguir o que foi verificado na nuvem do que depende de Windows. O [fluxo da equipe](docs/EQUIPE.md) descreve branches, PRs e pendências da entrega. Preencha `integrantes.txt` com os dados reais antes de entregar.
