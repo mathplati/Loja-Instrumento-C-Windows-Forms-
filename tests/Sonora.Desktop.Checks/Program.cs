@@ -384,11 +384,13 @@ internal static class Program
         {
             window.ClientSize = size;
             Pump(window);
+            NativeDialogs.EnsureClientSize(window, size);
             ExpectWindowSize(window, size, prefix);
             foreach (var name in names) ExpectUnclipped(Find<Control>(window, name));
             foreach (var scroll in Descendants(window).OfType<ScrollableControl>().Where(control => control.AutoScroll).Reverse())
                 scroll.AutoScrollPosition = Point.Empty;
             Pump(window);
+            NativeDialogs.EnsureClientSize(window, size);
             ExpectWindowSize(window, size, prefix);
             if (screenshots is null) continue;
             using var bitmap = new Bitmap(window.Width, window.Height);

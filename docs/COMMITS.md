@@ -1,6 +1,6 @@
 # Organização dos commits da conclusão
 
-Orientação final do usuário: **três commits gerais por integrante**. A história já publicada foi preservada, e a conclusão técnica tem três commits na branch `feat/finalizar-entrega`:
+Orientação final do usuário: **três commits gerais por integrante**. A história já publicada foi preservada, e a conclusão técnica tem três commits principais na branch `feat/finalizar-entrega`, seguidos dos ajustes necessários na validação Windows:
 
 1. Driver de automação dos diálogos nativos, limitado ao processo de teste e com prazos de espera.
 2. Finalização da venda pelo botão real, confirmação, persistência e limpeza do pedido.

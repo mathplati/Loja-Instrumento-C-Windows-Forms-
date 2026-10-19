@@ -147,6 +147,27 @@ internal static class NativeDialogs
         return new Size(bounds.Right - bounds.Left, bounds.Bottom - bounds.Top);
     }
 
+    internal static void EnsureClientSize(Form window, Size requested)
+    {
+        // No desktop reduzido do CI, o setter gerenciado pode manter o cliente
+        // em cache enquanto o HWND foi limitado. Corrige o HWND com sua moldura real.
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            var client = ActualClientSize(window.Handle);
+            var outer = ActualWindowSize(window.Handle);
+            if (client == requested && outer == window.Size) return;
+            var width = requested.Width + outer.Width - client.Width;
+            var height = requested.Height + outer.Height - client.Height;
+            if (!SetWindowPos(window.Handle, 0, 0, 0, width, height, 0x0016))
+                throw new InvalidOperationException($"SetWindowPos falhou ao ajustar o cliente: erro {Marshal.GetLastWin32Error()}.");
+            Application.DoEvents();
+            window.PerformLayout();
+            window.Update();
+            Application.DoEvents();
+        }
+        // ExpectWindowSize mantém a verificação estrita e registra os tamanhos reais.
+    }
+
     private static bool WaitUntilHidden(nint window, TimeSpan timeout)
     {
         var elapsed = Stopwatch.StartNew();
@@ -275,6 +296,9 @@ internal static class NativeDialogs
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetClientRect(nint window, out WindowRectangle bounds);
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowPos(nint window, nint insertAfter, int x, int y, int width, int height, uint flags);
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool PrintWindow(nint window, nint context, uint flags);
