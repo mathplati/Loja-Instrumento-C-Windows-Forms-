@@ -1,0 +1,18 @@
+# .NET / Visual Studio
+**/bin/
+**/obj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+TestResults/
+coverage/
+*.log
+# Dados locais e configurações privadas
+data/
+.env
+.env.*
+!.env.example
+artifacts/
