@@ -56,6 +56,9 @@ internal static class Program
             temporaryData = Path.Combine(Path.GetTempPath(), "sonora-desktop-checks-" + Guid.NewGuid().ToString("N"));
             var store = new SaleStore(Path.Combine(temporaryData, "sales.json"));
             using var menu = new MenuForm(store);
+            // O runner pode ter desktop de 1024 px. Limite explícito permite
+            // renderização fora da tela, mantendo o cliente solicitado completo.
+            menu.MaximumSize = new Size(1800, 1200);
             menu.StartPosition = FormStartPosition.Manual;
             menu.Location = Point.Empty;
             menu.Show();
@@ -381,17 +384,27 @@ internal static class Program
         {
             window.ClientSize = size;
             Pump(window);
-            Expect(window.ClientSize == size,
-                $"A sessão Windows limitou o cliente a {window.ClientSize}; é necessário acomodar {size.Width}x{size.Height}.");
+            ExpectWindowSize(window, size, prefix);
             foreach (var name in names) ExpectUnclipped(Find<Control>(window, name));
             foreach (var scroll in Descendants(window).OfType<ScrollableControl>().Where(control => control.AutoScroll).Reverse())
                 scroll.AutoScrollPosition = Point.Empty;
             Pump(window);
+            ExpectWindowSize(window, size, prefix);
             if (screenshots is null) continue;
             using var bitmap = new Bitmap(window.Width, window.Height);
             window.DrawToBitmap(bitmap, new Rectangle(Point.Empty, window.Size));
             bitmap.Save(Path.Combine(screenshots, $"{prefix}-{size.Width}x{size.Height}.png"), ImageFormat.Png);
         }
+    }
+
+    private static void ExpectWindowSize(Form window, Size requested, string prefix)
+    {
+        var actualClient = NativeDialogs.ActualClientSize(window.Handle);
+        var actualWindow = NativeDialogs.ActualWindowSize(window.Handle);
+        var screens = string.Join(", ", Screen.AllScreens.Select(screen => screen.WorkingArea.ToString()));
+        Console.WriteLine($"LAYOUT {prefix}: DPI={window.DeviceDpi}, requested={requested}, ClientSize={window.ClientSize}, actualClient={actualClient}, Size={window.Size}, actualWindow={actualWindow}, screens={screens}");
+        Expect(window.ClientSize == requested && actualClient == requested && window.Size == actualWindow,
+            $"A sessão Windows não acomodou o tamanho solicitado: cliente {requested}, cliente real {actualClient}, janela real {actualWindow}, tamanho gerenciado {window.Size}.");
     }
 
     private static void ExpectUnclipped(Control control)

@@ -47,6 +47,7 @@ public sealed class SaleForm : Form
         title.AutoSize = false;
         title.Dock = DockStyle.Fill;
         title.AutoEllipsis = true;
+        title.Margin = Padding.Empty;
         var subtitle = FieldLabel("Escolha os instrumentos. A próxima história é por conta do cliente.");
         subtitle.ForeColor = Ui.Muted;
         subtitle.AutoEllipsis = true;

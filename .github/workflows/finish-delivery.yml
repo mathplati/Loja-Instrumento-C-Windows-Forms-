@@ -58,7 +58,7 @@ jobs:
 
   evidence:
     name: Publicar evidências da execução
-    needs: windows
+    needs: [windows, finish]
     if: always()
     runs-on: ubuntu-latest
     permissions:
@@ -71,12 +71,18 @@ jobs:
         with:
           name: Sonora-telas-Windows-Forms
           path: evidence
+      - uses: actions/download-artifact@v4
+        if: needs.finish.result != 'skipped'
+        with:
+          name: Sonora-integracao
+          path: evidence
       - name: Guardar log e capturas em branch de evidências
         working-directory: evidence
         shell: bash
         run: |
           set -euo pipefail
           printf '# Evidências Windows Forms\n\nExecução: %s\n\nDados e clientes são fictícios, exclusivos dos testes.\n\n[Resultado dos testes](native-checks.log)\n\n' "$GITHUB_RUN_ID" > README.md
+          if test -f integration.log; then printf '[Resultado da integração dos PRs](integration.log)\n\n' >> README.md; fi
           while IFS= read -r file; do
             printf '\n![%s](%s)\n' "$(basename "$file")" "$file" >> README.md
           done < <(find artifacts -name '*.png' -type f | sort)
@@ -111,6 +117,7 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s inherit_errexit
+          exec > >(tee -a "$GITHUB_WORKSPACE/integration.log") 2>&1
           work_dir="$(mktemp -d)"
           trap 'rm -rf "$work_dir"' EXIT
 
@@ -230,3 +237,10 @@ jobs:
           git merge-base --is-ancestor "$dev_head" origin/main || fail 'O merge de dev em main não foi confirmado.'
           [[ "$(git rev-parse 'origin/main^{tree}')" == "$validated_tree" ]] || fail 'O conteúdo final de main diverge do conteúdo validado. Confira alterações concorrentes.'
           printf '\nDev → main: PR #%s integrado. A árvore final de main corresponde à feature validada.\n\nRevisão técnica automatizada; nenhuma revisão humana foi registrada. A branch da feature foi preservada.\n' "$release_pr" >> "$GITHUB_STEP_SUMMARY"
+      - name: Guardar resultado da integração
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sonora-integracao
+          path: integration.log
+          if-no-files-found: warn

@@ -14,6 +14,8 @@ internal static class NativeDialogs
     private const uint WmClose = 0x0010;
     private const uint WmGetText = 0x000D;
     private const uint WmSetText = 0x000C;
+    private const uint WmCommand = 0x0111;
+    private const uint DmGetDefaultId = 0x0400;
     private const uint BmClick = 0x00F5;
 
     internal static void Run(Action trigger, params DialogStep[] steps)
@@ -94,13 +96,71 @@ internal static class NativeDialogs
 
     private static void ClickDialogButton(nint window, int identifier)
     {
-        // IDs nativos IDOK/IDCANCEL são estáveis entre idiomas do Windows.
-        var button = GetDlgItem(window, identifier);
-        if (button == 0 || !IsWindowVisible(button))
-            button = Children(window).FirstOrDefault(child => GetDlgCtrlID(child) == identifier && ClassName(child) == "Button" && IsWindowVisible(child));
-        if (button == 0 || !PostMessage(button, BmClick, 0, 0))
-            throw new InvalidOperationException($"Não foi possível acionar o botão nativo {identifier}: {Describe(window)}");
+        var deadline = Stopwatch.StartNew();
+        nint button = 0;
+        while (deadline.Elapsed < TimeSpan.FromSeconds(4))
+        {
+            var buttons = Children(window).Where(child => ClassName(child).Contains("button", StringComparison.OrdinalIgnoreCase)
+                && IsWindowVisible(child) && IsWindowEnabled(child)).ToArray();
+            button = buttons.FirstOrDefault(child => GetDlgCtrlID(child) == identifier);
+            if (button == 0 && identifier == 1 &&
+                SendNumberTimeout(window, DmGetDefaultId, 0, 0, 3, 500, out var defaultId) != 0 &&
+                (((long)defaultId >> 16) & 0xffff) == 0x534B)
+                button = buttons.FirstOrDefault(child => GetDlgCtrlID(child) == ((long)defaultId & 0xffff));
+            if (button == 0)
+            {
+                var labels = identifier == 1 ? new[] { "OK", "Save", "Salvar" } : new[] { "Cancel", "Cancelar" };
+                button = buttons.FirstOrDefault(child => labels.Contains(ReadText(child).Replace("&", "").Trim(), StringComparer.OrdinalIgnoreCase));
+            }
+            if (button != 0) break;
+            Thread.Sleep(25);
+        }
+        Console.WriteLine($"DIALOG controls: {DescribeControls(window)}");
+        if (button == 0)
+            throw new InvalidOperationException($"Botão de {(identifier == 1 ? "aceitação" : "cancelamento")} não encontrado: {Describe(window)}");
+
+        var posted = PostMessage(button, BmClick, 0, 0);
+        var postError = Marshal.GetLastWin32Error();
+        Console.WriteLine($"DIALOG BM_CLICK hwnd=0x{button:X} id={GetDlgCtrlID(button)} posted={posted} error={postError}");
+        if (posted && WaitUntilHidden(window, TimeSpan.FromSeconds(2))) return;
+
+        // BN_CLICKED/WM_COMMAND é a notificação enviada pelo botão ao diálogo.
+        // Preserva a aceitação/cancelamento real; não força EndDialog nem WM_CLOSE.
+        var parent = GetParent(button);
+        var command = (nint)(GetDlgCtrlID(button) & 0xffff);
+        var sent = SendNumberTimeout(parent, WmCommand, command, button, 3, 2000, out _) != 0;
+        var sendError = Marshal.GetLastWin32Error();
+        Console.WriteLine($"DIALOG WM_COMMAND id={command} sent={sent} error={sendError}");
+        if (WaitUntilHidden(window, TimeSpan.FromSeconds(2))) return;
+        throw new InvalidOperationException($"O botão nativo não concluiu o diálogo (postError={postError}, sendError={sendError}). {DescribeControls(window)} | {Describe(window)}");
     }
+
+    internal static Size ActualWindowSize(nint window)
+    {
+        if (!GetWindowRect(window, out var bounds)) throw new InvalidOperationException("GetWindowRect falhou.");
+        return new Size(bounds.Right - bounds.Left, bounds.Bottom - bounds.Top);
+    }
+
+    internal static Size ActualClientSize(nint window)
+    {
+        if (!GetClientRect(window, out var bounds)) throw new InvalidOperationException("GetClientRect falhou.");
+        return new Size(bounds.Right - bounds.Left, bounds.Bottom - bounds.Top);
+    }
+
+    private static bool WaitUntilHidden(nint window, TimeSpan timeout)
+    {
+        var elapsed = Stopwatch.StartNew();
+        while (elapsed.Elapsed < timeout)
+        {
+            if (!IsWindowVisible(window)) return true;
+            Thread.Sleep(25);
+        }
+        return !IsWindowVisible(window);
+    }
+
+    private static string DescribeControls(nint window) => string.Join(" | ", Children(window)
+        .Where(child => ClassName(child).Contains("button", StringComparison.OrdinalIgnoreCase))
+        .Select(child => $"hwnd=0x{child:X}, class={ClassName(child)}, id={GetDlgCtrlID(child)}, visible={IsWindowVisible(child)}, enabled={IsWindowEnabled(child)}, text={ReadText(child)}"));
 
     internal static void Capture(nint window, string? destination)
     {
@@ -187,12 +247,17 @@ internal static class NativeDialogs
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool IsWindowVisible(nint window);
     [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindowEnabled(nint window);
+    [DllImport("user32.dll")]
+    private static extern nint GetParent(nint window);
+    [DllImport("user32.dll")]
     private static extern nint GetDlgItem(nint dialog, int item);
     [DllImport("user32.dll")]
     private static extern int GetDlgCtrlID(nint window);
     [DllImport("user32.dll", EntryPoint = "GetClassNameW", CharSet = CharSet.Unicode)]
     private static extern int GetClassName(nint window, StringBuilder name, int count);
-    [DllImport("user32.dll", EntryPoint = "PostMessageW")]
+    [DllImport("user32.dll", EntryPoint = "PostMessageW", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool PostMessage(nint window, uint message, nint parameter, nint value);
     [DllImport("user32.dll", EntryPoint = "SendMessageTimeoutW", CharSet = CharSet.Unicode)]
@@ -201,9 +266,15 @@ internal static class NativeDialogs
     [DllImport("user32.dll", EntryPoint = "SendMessageTimeoutW", CharSet = CharSet.Unicode)]
     private static extern nint SendTextTimeout(nint window, uint message, nint parameter, string text,
         uint flags, uint timeout, out nint result);
+    [DllImport("user32.dll", EntryPoint = "SendMessageTimeoutW", SetLastError = true)]
+    private static extern nint SendNumberTimeout(nint window, uint message, nint parameter, nint value,
+        uint flags, uint timeout, out nint result);
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetWindowRect(nint window, out WindowRectangle bounds);
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetClientRect(nint window, out WindowRectangle bounds);
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool PrintWindow(nint window, nint context, uint flags);
