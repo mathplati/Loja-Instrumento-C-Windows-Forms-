@@ -9,7 +9,7 @@
 | Integrante de relatório | Filtros, indicadores, detalhes e CSV | Relatório consistente com as vendas |
 | Integrante de qualidade | Testes, documentação e identificação | Evidências e integrantes.txt preenchido |
 
-Os nomes e RMs dependem da equipe real. O código inicial não substitui os commits, revisões e PRs que cada integrante deve realizar pelo próprio acesso.
+O usuário informou que já concluiu a identificação e a configuração da equipe. A versão final desses dados deve ser sincronizada pelo responsável, preservando nomes, RMs e usuários reais. A autoria do trabalho de cada integrante continua pertencendo ao próprio acesso.
 
 ## Branches
 
@@ -45,4 +45,4 @@ Abrir PR com destino `dev`, explicar o comportamento e as verificações executa
 
 ## Pendências da equipe
 
-Os nomes, RMs, usuários do GitHub e responsáveis reais ainda não foram informados. Os commits atuais utilizam a identidade Git já configurada; não comprovam participação individual da equipe. Cada integrante precisa realizar seus próprios commits e PRs para cumprir o fluxo acadêmico. Até a auditoria realizada nesta implementação, o repositório não tinha PRs abertos ou fechados nem revisão de colegas registrada. Não foram criadas aprovações ou identidades fictícias.
+Conforme a orientação mais recente do usuário, a regra é de três commits gerais por integrante. A conclusão técnica deste ambiente foi separada em três commits na branch `feat/finalizar-entrega`, preservando o histórico publicado. O workflow de conclusão cria os PRs feature → `dev` e `dev` → `main` após a validação no Windows, respeitando permissões e proteções. O resumo da execução registra os números dos PRs ou o impedimento exato. A revisão feita pela automação é identificada como automatizada; aprovações humanas não são registradas por ela.

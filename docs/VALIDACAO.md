@@ -12,11 +12,11 @@ As capturas são da interface web de apoio. O Windows Forms foi compilado para W
 
 ## Verificações nativas aprovadas no Windows
 
-O projeto `tests/Sonora.Desktop.Checks` contém 13 verificações nativas: Splash e sinal de transição, menu, navegação, carrinho, total com desconto, preservação do pedido, busca/categoria, persistência, relatório, filtros e acesso aos controles em dois tamanhos de janela. Ele usa dados temporários e pode salvar PNGs das janelas reais via `Form.DrawToBitmap`.
+O projeto `tests/Sonora.Desktop.Checks` contém 17 verificações nativas: Splash e sinal de transição, menu, navegação, carrinho, total com desconto, preservação do pedido, busca/categoria, persistência, relatório, filtros e acesso aos controles em dois tamanhos de janela. Os fluxos adicionais acionam a finalização real e a confirmação, abrem e fecham os detalhes, salvam e cancelam a exportação pelo seletor nativo e validam a quantidade ainda em edição ao usar `Ctrl+Enter`. Os dados são temporários, com capturas dos formulários e dos diálogos.
 
 O workflow `.github/workflows/windows-desktop.yml` foi executado em `windows-latest` e passou no commit `2bba2bc`: build, verificador de domínio, verificador nativo, captura e geração do pacote. A [execução 39341962230](https://github.com/mathplati/Loja-Instrumento-C-Windows-Forms-/actions/runs/39341962230) confirma a conclusão de todas as etapas com sucesso. Os artefatos são `Sonora-telas-Windows-Forms` (PNGs nativos) e `Sonora-Windows-x64` (aplicativo).
 
-A compilação cruzada também passou no Linux. Os diálogos de confirmação e exportação, a revisão visual humana, o designer e a escala de 150% continuam no roteiro manual. O teste nativo registra o pedido pelo serviço e confere sua apresentação nos formulários; não apresenta como verificados os diálogos que não acionou.
+A execução anterior acima aprovou os 13 checks anteriores. O workflow `finish-delivery.yml` executa os 17 checks atuais e grava a saída completa no resumo do job Windows. Consulte essa execução para o resultado dos novos diálogos; as capturas incluem confirmação de venda, detalhes, seletor CSV e confirmação da exportação. A revisão visual humana, o designer e a escala de 150% continuam no roteiro manual.
 
 ## Roteiro obrigatório em Windows
 

@@ -13,6 +13,7 @@ internal static class NativeDialogs
     private static readonly TimeSpan DialogTimeout = TimeSpan.FromSeconds(12);
     private const uint WmClose = 0x0010;
     private const uint WmGetText = 0x000D;
+    private const uint WmSetText = 0x000C;
     private const uint BmClick = 0x00F5;
 
     internal static void Run(Action trigger, params DialogStep[] steps)
@@ -65,11 +66,40 @@ internal static class NativeDialogs
     internal static string Describe(nint window) => string.Join(" | ",
         new[] { ReadText(window) }.Concat(Children(window).Select(ReadText)).Where(text => !string.IsNullOrWhiteSpace(text)));
 
-    internal static void Confirm(nint window)
+    internal static void Confirm(nint window) => ClickDialogButton(window, 1);
+
+    internal static void Cancel(nint window) => ClickDialogButton(window, 2);
+
+    internal static void SetSaveFileName(nint window, string path)
     {
-        var button = GetDlgItem(window, 1); // IDOK pertence ao MessageBox, independente do idioma do Windows.
-        if (button == 0 || !IsWindowVisible(button) || !PostMessage(button, BmClick, 0, 0))
-            throw new InvalidOperationException($"Não foi possível confirmar o diálogo: {Describe(window)}");
+        var deadline = Stopwatch.StartNew();
+        while (deadline.Elapsed < TimeSpan.FromSeconds(5))
+        {
+            var edits = Children(window).Where(child => ClassName(child) == "Edit" && IsWindowVisible(child)).ToArray();
+            // IFileDialog usa 1001; o diálogo clássico usa edt1 (1152).
+            // O nome padrão é uma alternativa precisa se o Windows mudar o ID.
+            var filename = edits.FirstOrDefault(child => GetDlgCtrlID(child) is 1001 or 1152);
+            if (filename == 0)
+                filename = edits.FirstOrDefault(child => ReadText(child).StartsWith("sonora-vendas-", StringComparison.Ordinal));
+            if (filename != 0)
+            {
+                if (SendTextTimeout(filename, WmSetText, 0, path, 3, 2000, out _) == 0 || ReadText(filename) != path)
+                    throw new InvalidOperationException("O diálogo de salvar não aceitou o caminho temporário do CSV.");
+                return;
+            }
+            Thread.Sleep(25);
+        }
+        throw new InvalidOperationException($"Campo de nome do arquivo não encontrado: {Describe(window)}");
+    }
+
+    private static void ClickDialogButton(nint window, int identifier)
+    {
+        // IDs nativos IDOK/IDCANCEL são estáveis entre idiomas do Windows.
+        var button = GetDlgItem(window, identifier);
+        if (button == 0 || !IsWindowVisible(button))
+            button = Children(window).FirstOrDefault(child => GetDlgCtrlID(child) == identifier && ClassName(child) == "Button" && IsWindowVisible(child));
+        if (button == 0 || !PostMessage(button, BmClick, 0, 0))
+            throw new InvalidOperationException($"Não foi possível acionar o botão nativo {identifier}: {Describe(window)}");
     }
 
     internal static void Capture(nint window, string? destination)
@@ -133,6 +163,13 @@ internal static class NativeDialogs
         return text.ToString();
     }
 
+    private static string ClassName(nint window)
+    {
+        var name = new StringBuilder(256);
+        GetClassName(window, name, name.Capacity);
+        return name.ToString();
+    }
+
     private delegate bool EnumerateWindow(nint window, nint parameter);
 
     [StructLayout(LayoutKind.Sequential)]
@@ -151,11 +188,18 @@ internal static class NativeDialogs
     private static extern bool IsWindowVisible(nint window);
     [DllImport("user32.dll")]
     private static extern nint GetDlgItem(nint dialog, int item);
+    [DllImport("user32.dll")]
+    private static extern int GetDlgCtrlID(nint window);
+    [DllImport("user32.dll", EntryPoint = "GetClassNameW", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(nint window, StringBuilder name, int count);
     [DllImport("user32.dll", EntryPoint = "PostMessageW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool PostMessage(nint window, uint message, nint parameter, nint value);
     [DllImport("user32.dll", EntryPoint = "SendMessageTimeoutW", CharSet = CharSet.Unicode)]
     private static extern nint SendMessageTimeout(nint window, uint message, nint parameter, StringBuilder text,
+        uint flags, uint timeout, out nint result);
+    [DllImport("user32.dll", EntryPoint = "SendMessageTimeoutW", CharSet = CharSet.Unicode)]
+    private static extern nint SendTextTimeout(nint window, uint message, nint parameter, string text,
         uint flags, uint timeout, out nint result);
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
