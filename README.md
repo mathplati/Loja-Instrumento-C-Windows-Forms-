@@ -2,6 +2,8 @@
 
 Sistema acadêmico de vendas em C# / .NET 8. A entrega desktop utiliza Windows Forms. Uma interface web de apoio permite explorar o mesmo catálogo, serviço de vendas e relatório no Linux.
 
+[Abrir galeria de capturas da interface web de apoio](docs/GALERIA.md)
+
 ## Estrutura
 
 - `src/Sonora.Core`: catálogo, regras de venda e persistência JSON.
