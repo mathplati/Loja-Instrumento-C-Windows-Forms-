@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 
@@ -5,13 +6,16 @@ namespace Sonora.Core;
 
 public sealed class SaleStore
 {
+    private static readonly ConcurrentDictionary<string, object> FileGates = new(
+        OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
     private readonly string path;
-    private readonly object gate = new();
+    private readonly object gate;
     private readonly JsonSerializerOptions json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
     public SaleStore(string path)
     {
         this.path = Path.GetFullPath(path);
+        gate = FileGates.GetOrAdd(this.path, _ => new object());
         Directory.CreateDirectory(Path.GetDirectoryName(this.path)!);
     }
 

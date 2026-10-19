@@ -93,6 +93,12 @@ try
         Equal(24, store.List().Count);
         Equal(24, store.List().Select(s => s.Id).Distinct().Count());
     });
+    Check("instâncias distintas compartilham a proteção do arquivo", () =>
+    {
+        var shared = Path.Combine(root, "shared.json");
+        Parallel.For(0, 30, _ => new SaleStore(shared).Create(Valid()));
+        Equal(30, new SaleStore(shared).List().Count);
+    });
     Check("arquivo corrompido é preservado e reportado", () =>
     {
         var bad = Path.Combine(root, "bad.json"); File.WriteAllText(bad, "{broken");
