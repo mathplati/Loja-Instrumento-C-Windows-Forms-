@@ -14,7 +14,11 @@ internal static class Program
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
         Application.ThreadException += (_, e) => MessageBox.Show(e.Exception.Message, "Sonora · Não foi possível concluir", MessageBoxButtons.OK, MessageBoxIcon.Error);
         var data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Sonora", "sales.json");
-        try { Application.Run(new SplashForm(new SaleStore(data))); }
+        try
+        {
+            using var context = new SonoraApplicationContext(new SaleStore(data));
+            Application.Run(context);
+        }
         catch (Exception error) { MessageBox.Show(error.Message, "Sonora · Falha ao iniciar", MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
 }
