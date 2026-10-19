@@ -1,0 +1,32 @@
+PASS abertura nativa aparece e sinaliza a transição
+PASS menu nativo abre com armazenamento temporário vazio
+PASS navegação acessível nos dois tamanhos de cliente
+PASS navegação abre a tela nativa de venda
+PASS guitarra e violão com desconto de 10% totalizam R$ 2.150,10
+PASS voltar ao menu e reabrir venda preserva o pedido
+PASS controles essenciais da venda acessíveis nos dois tamanhos
+PASS busca e categoria filtram o catálogo sem alterar o pedido
+DIALOG Tudo em harmonia
+FAIL após 8 verificações nativas: System.InvalidOperationException: Falha no diálogo. Detectados: Sonora · Nova venda | Tudo em harmonia | Tudo em harmonia | OK | Venda registrada!
+
+Cliente: Cliente de verificação
+Total: R$ 2.150,10
+Pedido: SON-b1d80ea0ccaa46979d471ec6ed841122
+
+Confira os detalhes no relatório.
+ ---> System.InvalidOperationException: Não foi possível acionar o botão nativo 1: Tudo em harmonia | OK | Venda registrada!
+
+Cliente: Cliente de verificação
+Total: R$ 2.150,10
+Pedido: SON-b1d80ea0ccaa46979d471ec6ed841122
+
+Confira os detalhes no relatório.
+   at Sonora.Desktop.Checks.NativeDialogs.ClickDialogButton(IntPtr window, Int32 identifier) in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\NativeDialogs.cs:line 102
+   at Sonora.Desktop.Checks.NativeDialogs.Confirm(IntPtr window) in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\NativeDialogs.cs:line 69
+   at Sonora.Desktop.Checks.Program.<>c__DisplayClass3_2.<Main>b__19(IntPtr dialog) in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\Program.cs:line 140
+   at Sonora.Desktop.Checks.NativeDialogs.<>c__DisplayClass5_0.<Run>b__2() in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\NativeDialogs.cs:line 41
+   --- End of inner exception stack trace ---
+   at Sonora.Desktop.Checks.NativeDialogs.Run(Action trigger, DialogStep[] steps) in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\NativeDialogs.cs:line 58
+   at Sonora.Desktop.Checks.Program.<>c__DisplayClass3_0.<Main>b__8() in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\Program.cs:line 133
+   at Sonora.Desktop.Checks.Program.Check(String name, Action run) in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\Program.cs:line 334
+   at Sonora.Desktop.Checks.Program.Main(String[] args) in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\Program.cs:line 130
