@@ -28,7 +28,7 @@ public sealed class SaleForm : Form
         search.TextChanged += (_, _) => RenderCatalog(); category.SelectedIndexChanged += (_, _) => RenderCatalog();
         left.Controls.Add(catalog); left.Controls.Add(header);
         var right = new TableLayoutPanel { Dock = DockStyle.Fill, BackColor = Color.White, Padding = new Padding(20), RowCount = 3 };
-        right.RowStyles.Add(new RowStyle(SizeType.Absolute, 205)); right.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); right.RowStyles.Add(new RowStyle(SizeType.Absolute, 195));
+        right.RowStyles.Add(new RowStyle(SizeType.Absolute, 205)); right.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); right.RowStyles.Add(new RowStyle(SizeType.Absolute, 240));
         var fields = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false };
         fields.Controls.Add(Ui.Text("Seu pedido", 22, true)); fields.Controls.Add(Ui.Text("Cliente")); fields.Controls.Add(customer);
         fields.Controls.Add(Ui.Text("Pagamento")); fields.Controls.Add(payment);

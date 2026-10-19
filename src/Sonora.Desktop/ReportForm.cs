@@ -20,7 +20,7 @@ public sealed class ReportForm : Form
         var header = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 240, Padding = new Padding(28) };
         header.Controls.Add(Ui.Text("Cada venda, uma nova história.", 27, true)); header.SetFlowBreak(header.Controls[0], true);
         header.Controls.Add(Ui.Text("De")); header.Controls.Add(from); header.Controls.Add(Ui.Text("Até")); header.Controls.Add(to);
-        header.Controls.Add(payment); header.Controls.Add(Ui.Button("Aplicar filtros", LoadSales));
+        header.Controls.Add(payment); header.Controls.Add(Ui.Button("Aplicar filtros", () => LoadSales()));
         header.SetFlowBreak(header.Controls[^1], true); header.Controls.Add(summary); header.SetFlowBreak(summary, true);
         header.Controls.Add(Ui.Button("Exportar CSV", Export)); header.Controls.Add(Ui.Text("Dê dois cliques em uma venda para ver os instrumentos.", 10));
         foreach (var (id, title) in new[] { ("id", "Pedido"), ("date", "Data"), ("customer", "Cliente"), ("payment", "Pagamento"), ("quantity", "Qtd."), ("total", "Total") }) grid.Columns.Add(id, title);
@@ -36,7 +36,7 @@ public sealed class ReportForm : Form
         Controls.Add(body); Controls.Add(header); Shown += (_, _) => LoadSales();
     }
 
-    private void LoadSales()
+    private bool LoadSales()
     {
         try
         {
@@ -46,15 +46,16 @@ public sealed class ReportForm : Form
                 sale.Customer, Reports.PaymentLabel(sale.Payment), sale.Quantity, Ui.Money(sale.Total));
             var data = Reports.Summarize(sales);
             summary.Text = data.Sales == 0 ? "Nenhuma venda no período selecionado." : $"{data.Sales} vendas   ·   {data.Instruments} instrumentos   ·   Receita: {Ui.Money(data.Revenue)}   ·   Ticket médio: {Ui.Money(data.AverageTicket)}";
+            return true;
         }
-        catch (Exception error) { Ui.Error(error); }
+        catch (Exception error) { Ui.Error(error); return false; }
     }
 
     private void Export()
     {
         // Recarrega os filtros atuais para que tabela e arquivo correspondam.
         if (from.Value.Date > to.Value.Date) { Ui.Error(new ArgumentException("Confira o intervalo de datas.")); return; }
-        LoadSales();
+        if (!LoadSales()) return;
         using var dialog = new SaveFileDialog { Filter = "Planilha CSV (*.csv)|*.csv", FileName = $"sonora-vendas-{StoreClock.Today:yyyy-MM-dd}.csv" };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         try { File.WriteAllText(dialog.FileName, Reports.Csv(sales), new UTF8Encoding(true)); MessageBox.Show("Relatório exportado com sucesso."); }
