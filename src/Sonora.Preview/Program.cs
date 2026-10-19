@@ -20,7 +20,7 @@ app.Use(async (context, next) =>
     }
     try { await next(context); }
     catch (ArgumentException error) { context.Response.StatusCode = 400; await context.Response.WriteAsJsonAsync(new { message = error.Message }); }
-    catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+    catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException)
     {
         app.Logger.LogError(error, "Falha no arquivo de vendas"); context.Response.StatusCode = 500;
         await context.Response.WriteAsJsonAsync(new { message = "Não foi possível acessar os dados. Confira o arquivo de vendas e as permissões; os dados existentes foram preservados." });

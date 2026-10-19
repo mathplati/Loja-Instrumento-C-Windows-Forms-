@@ -20,8 +20,16 @@ public sealed class SaleStore
         if (!File.Exists(path)) return [];
         try
         {
-            return JsonSerializer.Deserialize<List<Sale>>(File.ReadAllText(path), json)
+            var sales = JsonSerializer.Deserialize<List<Sale>>(File.ReadAllText(path), json)
                 ?? throw new InvalidDataException("O arquivo de vendas está vazio ou inválido.");
+            if (sales.Any(sale => sale is null || string.IsNullOrWhiteSpace(sale.Id) || string.IsNullOrWhiteSpace(sale.Customer)
+                || !Enum.IsDefined(sale.Payment) || sale.DiscountPercent is < 0 or > 30
+                || sale.Items is null || sale.Items.Count == 0
+                || sale.Items.Any(item => item is null || string.IsNullOrWhiteSpace(item.InstrumentId)
+                    || string.IsNullOrWhiteSpace(item.Name) || item.Quantity is < 1 or > 100 || item.UnitPrice <= 0))
+                || sales.Select(sale => sale.Id).Distinct().Count() != sales.Count)
+                throw new InvalidDataException("O arquivo de vendas contém registros inválidos. Preserve-o para recuperação.");
+            return sales;
         }
         catch (JsonException error)
         {

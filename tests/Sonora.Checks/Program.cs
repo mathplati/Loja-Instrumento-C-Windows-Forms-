@@ -99,6 +99,15 @@ try
         try { new SaleStore(bad).Create(Valid()); throw new Exception("Arquivo inválido aceito"); }
         catch (InvalidDataException) { Equal("{broken", File.ReadAllText(bad)); }
     });
+    Check("JSON com registros incompletos também é preservado", () =>
+    {
+        foreach (var content in new[] { "[{}]", "[null]", "null" })
+        {
+            var bad = Path.Combine(root, "incomplete.json"); File.WriteAllText(bad, content);
+            try { new SaleStore(bad).Create(Valid()); throw new Exception("Registro incompleto aceito"); }
+            catch (InvalidDataException) { Equal(content, File.ReadAllText(bad)); }
+        }
+    });
     Console.WriteLine($"\n{passed} verificações aprovadas.");
     return 0;
 }
