@@ -1,0 +1,12 @@
+PASS abertura nativa aparece e sinaliza a transição
+PASS menu nativo abre com armazenamento temporário vazio
+LAYOUT 01-menu: DPI=96, requested={Width=1320, Height=850}, ClientSize={Width=1320, Height=850}, actualClient={Width=1320, Height=850}, Size={Width=1336, Height=889}, actualWindow={Width=1336, Height=889}, screens={X=0,Y=0,Width=1024,Height=720}
+LAYOUT 01-menu: DPI=96, requested={Width=1320, Height=850}, ClientSize={Width=1320, Height=850}, actualClient={Width=1320, Height=850}, Size={Width=1336, Height=889}, actualWindow={Width=1336, Height=889}, screens={X=0,Y=0,Width=1024,Height=720}
+LAYOUT 01-menu: DPI=96, requested={Width=1080, Height=740}, ClientSize={Width=1080, Height=740}, actualClient={Width=1028, Height=740}, Size={Width=1044, Height=779}, actualWindow={Width=1044, Height=779}, screens={X=0,Y=0,Width=1024,Height=720}
+FAIL após 2 verificações nativas: System.InvalidOperationException: A sessão Windows não acomodou o tamanho solicitado: cliente {Width=1080, Height=740}, cliente real {Width=1028, Height=740}, janela real {Width=1044, Height=779}, tamanho gerenciado {Width=1044, Height=779}.
+   at Sonora.Desktop.Checks.Program.Expect(Boolean condition, String message) in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\Program.cs:line 344
+   at Sonora.Desktop.Checks.Program.ExpectWindowSize(Form window, Size requested, String prefix) in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\Program.cs:line 406
+   at Sonora.Desktop.Checks.Program.InspectSizes(Form window, String screenshots, String prefix, String[] names) in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\Program.cs:line 387
+   at Sonora.Desktop.Checks.Program.<>c__DisplayClass3_0.<Main>b__2() in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\Program.cs:line 74
+   at Sonora.Desktop.Checks.Program.Check(String name, Action run) in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\Program.cs:line 337
+   at Sonora.Desktop.Checks.Program.Main(String[] args) in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\Program.cs:line 73
