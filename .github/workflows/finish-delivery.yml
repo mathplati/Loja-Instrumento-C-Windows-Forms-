@@ -28,14 +28,16 @@ jobs:
       - name: Verificar regras de venda
         run: dotnet run --project tests/Sonora.Checks -c Release --no-build
       - name: Verificar formulários e capturar telas nativas
+        shell: cmd
         run: |
-          dotnet run --project tests/Sonora.Desktop.Checks -c Release --no-build -- --screenshots artifacts/windows-native 2>&1 | Tee-Object -FilePath native-checks.log
-          $status = $LASTEXITCODE
-          '## Verificações nativas do Windows' >> $env:GITHUB_STEP_SUMMARY
-          '```text' >> $env:GITHUB_STEP_SUMMARY
-          Get-Content native-checks.log >> $env:GITHUB_STEP_SUMMARY
-          '```' >> $env:GITHUB_STEP_SUMMARY
-          exit $status
+          dotnet run --project tests/Sonora.Desktop.Checks -c Release --no-build -- --screenshots artifacts/windows-native > native-checks.log 2>&1
+          set "native_status=%ERRORLEVEL%"
+          type native-checks.log
+          echo ## Verificacoes nativas do Windows>>"%GITHUB_STEP_SUMMARY%"
+          echo ```text>>"%GITHUB_STEP_SUMMARY%"
+          type native-checks.log>>"%GITHUB_STEP_SUMMARY%"
+          echo ```>>"%GITHUB_STEP_SUMMARY%"
+          exit /b %native_status%
       - name: Gerar aplicativo Windows x64
         run: dotnet publish src/Sonora.Desktop -c Release -r win-x64 --self-contained false -p:DebugType=None -o artifacts/windows -m:2
       - name: Guardar capturas nativas
@@ -43,7 +45,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Sonora-telas-Windows-Forms
-          path: artifacts/windows-native/*.png
+          path: |
+            artifacts/windows-native/*.png
+            native-checks.log
           if-no-files-found: error
       - name: Guardar pacote Windows
         uses: actions/upload-artifact@v4
@@ -51,6 +55,38 @@ jobs:
           name: Sonora-Windows-x64
           path: artifacts/windows/
           if-no-files-found: error
+
+  evidence:
+    name: Publicar evidências da execução
+    needs: windows
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Sonora-telas-Windows-Forms
+          path: evidence
+      - name: Guardar log e capturas em branch de evidências
+        working-directory: evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '# Evidências Windows Forms\n\nExecução: %s\n\nDados e clientes são fictícios, exclusivos dos testes.\n\n[Resultado dos testes](native-checks.log)\n\n' "$GITHUB_RUN_ID" > README.md
+          while IFS= read -r file; do
+            printf '\n![%s](%s)\n' "$(basename "$file")" "$file" >> README.md
+          done < <(find artifacts -name '*.png' -type f | sort)
+          git init -b snapshot
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .
+          git commit -m "ci: guardar evidências Windows da execução $GITHUB_RUN_ID"
+          git remote add origin "https://github.com/$GH_REPO.git"
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push origin "HEAD:refs/heads/ci/evidencias-$GITHUB_RUN_ID"
 
   finish:
     name: Integrar PRs após validação Windows
