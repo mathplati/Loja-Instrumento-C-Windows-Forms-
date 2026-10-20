@@ -1,0 +1,43 @@
+name: Windows Forms
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    name: Compilar e verificar no Windows
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compilar solução
+        run: dotnet build Sonora.sln -c Release -m:2
+      - name: Verificar regras de venda
+        run: dotnet run --project tests/Sonora.Checks -c Release --no-build
+      - name: Verificar formulários nativos e capturar telas
+        run: dotnet run --project tests/Sonora.Desktop.Checks -c Release --no-build -- --screenshots artifacts/windows-native
+      - name: Gerar aplicativo Windows x64
+        run: dotnet publish src/Sonora.Desktop -c Release -r win-x64 --self-contained false -p:DebugType=None -o artifacts/windows -m:2
+      - name: Guardar capturas nativas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sonora-telas-Windows-Forms
+          path: artifacts/windows-native/*.png
+          if-no-files-found: warn
+      - name: Guardar pacote Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sonora-Windows-x64
+          path: artifacts/windows/
+          if-no-files-found: error

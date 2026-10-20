@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8A0C68BC-CA81-4D57-9330-A7D849EB3063}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sonora.Core", "src\Sonora.Core\Sonora.Core.csproj", "{B59A9457-C525-461C-BB54-B1BCD26A7044}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sonora.Desktop", "src\Sonora.Desktop\Sonora.Desktop.csproj", "{5DE9F584-EB26-4C37-AB67-DCD752FC2581}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{AB5D8E9D-E477-477B-888F-A215131858AF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sonora.Checks", "tests\Sonora.Checks\Sonora.Checks.csproj", "{2261DD20-59EE-4178-A5CB-5AF7E48B6635}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sonora.Preview", "src\Sonora.Preview\Sonora.Preview.csproj", "{690FEFBB-3571-494E-9156-F5744CFFC1C6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sonora.Desktop.Checks", "tests\Sonora.Desktop.Checks\Sonora.Desktop.Checks.csproj", "{6C57B871-9F43-406E-93D5-835BD710AB0C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B59A9457-C525-461C-BB54-B1BCD26A7044}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B59A9457-C525-461C-BB54-B1BCD26A7044}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B59A9457-C525-461C-BB54-B1BCD26A7044}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B59A9457-C525-461C-BB54-B1BCD26A7044}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5DE9F584-EB26-4C37-AB67-DCD752FC2581}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5DE9F584-EB26-4C37-AB67-DCD752FC2581}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5DE9F584-EB26-4C37-AB67-DCD752FC2581}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5DE9F584-EB26-4C37-AB67-DCD752FC2581}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2261DD20-59EE-4178-A5CB-5AF7E48B6635}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2261DD20-59EE-4178-A5CB-5AF7E48B6635}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2261DD20-59EE-4178-A5CB-5AF7E48B6635}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2261DD20-59EE-4178-A5CB-5AF7E48B6635}.Release|Any CPU.Build.0 = Release|Any CPU
+		{690FEFBB-3571-494E-9156-F5744CFFC1C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{690FEFBB-3571-494E-9156-F5744CFFC1C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{690FEFBB-3571-494E-9156-F5744CFFC1C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{690FEFBB-3571-494E-9156-F5744CFFC1C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6C57B871-9F43-406E-93D5-835BD710AB0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6C57B871-9F43-406E-93D5-835BD710AB0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6C57B871-9F43-406E-93D5-835BD710AB0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6C57B871-9F43-406E-93D5-835BD710AB0C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B59A9457-C525-461C-BB54-B1BCD26A7044} = {8A0C68BC-CA81-4D57-9330-A7D849EB3063}
+		{5DE9F584-EB26-4C37-AB67-DCD752FC2581} = {8A0C68BC-CA81-4D57-9330-A7D849EB3063}
+		{2261DD20-59EE-4178-A5CB-5AF7E48B6635} = {AB5D8E9D-E477-477B-888F-A215131858AF}
+		{690FEFBB-3571-494E-9156-F5744CFFC1C6} = {8A0C68BC-CA81-4D57-9330-A7D849EB3063}
+		{6C57B871-9F43-406E-93D5-835BD710AB0C} = {AB5D8E9D-E477-477B-888F-A215131858AF}
+	EndGlobalSection
+EndGlobal

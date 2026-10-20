@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#202623" />
+    <title>Sonora · Sua loja, em harmonia</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script defer src="/app.js"></script>
+  </head>
+  <body>
+    <div id="splash" class="splash" role="status">
+      <div class="splash-mark">
+        s<span class="sound-bars"><i></i><i></i><i></i></span>nora<span>.</span>
+      </div>
+      <p>Cada grande história começa com uma nota.</p>
+      <div class="loading-track"><span></span></div>
+      <small>PREPARANDO SUA LOJA</small>
+    </div>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a href="#home" class="brand" aria-label="Sonora, início"
+          >sonora<span>.</span></a
+        >
+        <div class="store-chip">
+          <span class="store-icon">S</span>
+          <div>
+            <b>Loja de instrumentos</b><small>Seu espaço de música</small>
+          </div>
+        </div>
+        <p class="nav-caption">PRINCIPAL</p>
+        <nav aria-label="Navegação principal">
+          <a href="#home" data-nav="home"
+            ><span data-icon="home"></span>Visão geral</a
+          >
+          <a href="#sale" data-nav="sale"
+            ><span data-icon="bag"></span>Nova venda
+            <span class="nav-plus">+</span></a
+          >
+          <a href="#reports" data-nav="reports"
+            ><span data-icon="chart"></span>Relatório de vendas</a
+          >
+        </nav>
+        <div class="sidebar-note">
+          <span data-icon="music"></span>
+          <p>Grandes histórias.<br />Novos acordes.</p>
+          <small>O próximo som começa aqui.</small>
+        </div>
+        <div class="sidebar-footer">
+          <span class="status-dot"></span> Dados salvos localmente<small
+            >SONORA · VERSÃO 1.0</small
+          >
+        </div>
+      </aside>
+      <div class="workspace">
+        <header class="topbar">
+          <div class="breadcrumb">
+            Workspace <span>/</span> <b id="breadcrumb">Visão geral</b>
+          </div>
+          <div class="topbar-right">
+            <span id="today-label"></span><span class="topbar-divider"></span>
+            <div class="avatar">S</div>
+            <div class="profile">
+              <b>Equipe Sonora</b><small>Atendimento</small>
+            </div>
+          </div>
+        </header>
+        <main id="main" tabindex="-1"></main>
+        <footer class="page-footer">
+          <span>Feito para quem vive de música.</span
+          ><span>Sonora · Gestão de instrumentos</span>
+        </footer>
+      </div>
+    </div>
+    <div id="toast" class="toast" role="status" hidden></div>
+    <dialog id="details">
+      <div id="dialog-content"></div>
+      <form method="dialog">
+        <button class="btn secondary">Fechar detalhes</button>
+      </form>
+    </dialog>
+  </body>
+</html>
