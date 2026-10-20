@@ -1,0 +1,39 @@
+PASS abertura nativa aparece e sinaliza a transição
+PASS menu nativo abre com armazenamento temporário vazio
+LAYOUT 01-menu: DPI=96, requested={Width=1320, Height=850}, ClientSize={Width=1320, Height=850}, actualClient={Width=1320, Height=850}, Size={Width=1336, Height=889}, actualWindow={Width=1336, Height=889}, screens={X=0,Y=0,Width=1024,Height=720}
+LAYOUT 01-menu: DPI=96, requested={Width=1320, Height=850}, ClientSize={Width=1320, Height=850}, actualClient={Width=1320, Height=850}, Size={Width=1336, Height=889}, actualWindow={Width=1336, Height=889}, screens={X=0,Y=0,Width=1024,Height=720}
+LAYOUT 01-menu: DPI=96, requested={Width=1080, Height=740}, ClientSize={Width=1080, Height=740}, actualClient={Width=1080, Height=740}, Size={Width=1096, Height=779}, actualWindow={Width=1096, Height=779}, screens={X=0,Y=0,Width=1024,Height=720}
+LAYOUT 01-menu: DPI=96, requested={Width=1080, Height=740}, ClientSize={Width=1080, Height=740}, actualClient={Width=1080, Height=740}, Size={Width=1096, Height=779}, actualWindow={Width=1096, Height=779}, screens={X=0,Y=0,Width=1024,Height=720}
+PASS navegação acessível nos dois tamanhos de cliente
+PASS navegação abre a tela nativa de venda
+PASS guitarra e violão com desconto de 10% totalizam R$ 2.150,10
+PASS voltar ao menu e reabrir venda preserva o pedido
+LAYOUT 02-venda: DPI=96, requested={Width=1320, Height=850}, ClientSize={Width=1320, Height=850}, actualClient={Width=1320, Height=850}, Size={Width=1336, Height=889}, actualWindow={Width=1336, Height=889}, screens={X=0,Y=0,Width=1024,Height=720}
+LAYOUT 02-venda: DPI=96, requested={Width=1320, Height=850}, ClientSize={Width=1320, Height=850}, actualClient={Width=1320, Height=850}, Size={Width=1336, Height=889}, actualWindow={Width=1336, Height=889}, screens={X=0,Y=0,Width=1024,Height=720}
+LAYOUT 02-venda: DPI=96, requested={Width=1080, Height=740}, ClientSize={Width=1080, Height=740}, actualClient={Width=1080, Height=740}, Size={Width=1096, Height=779}, actualWindow={Width=1096, Height=779}, screens={X=0,Y=0,Width=1024,Height=720}
+LAYOUT 02-venda: DPI=96, requested={Width=1080, Height=740}, ClientSize={Width=1080, Height=740}, actualClient={Width=1080, Height=740}, Size={Width=1096, Height=779}, actualWindow={Width=1096, Height=779}, screens={X=0,Y=0,Width=1024,Height=720}
+PASS controles essenciais da venda acessíveis nos dois tamanhos
+PASS busca e categoria filtram o catálogo sem alterar o pedido
+DIALOG Tudo em harmonia
+DIALOG controls: hwnd=0x20392, class=Button, id=2, visible=True, enabled=True, text=OK
+DIALOG BM_CLICK hwnd=0x20392 id=2 posted=True error=0
+PASS botão Finalizar venda confirma o pedido real e limpa o formulário
+PASS relatório nativo mostra a venda real no dia de São Paulo
+LAYOUT 03-relatorio: DPI=96, requested={Width=1320, Height=850}, ClientSize={Width=1320, Height=850}, actualClient={Width=1320, Height=850}, Size={Width=1336, Height=889}, actualWindow={Width=1336, Height=889}, screens={X=0,Y=0,Width=1024,Height=720}
+LAYOUT 03-relatorio: DPI=96, requested={Width=1320, Height=850}, ClientSize={Width=1320, Height=850}, actualClient={Width=1320, Height=850}, Size={Width=1336, Height=889}, actualWindow={Width=1336, Height=889}, screens={X=0,Y=0,Width=1024,Height=720}
+LAYOUT 03-relatorio: DPI=96, requested={Width=1080, Height=740}, ClientSize={Width=1080, Height=740}, actualClient={Width=1080, Height=740}, Size={Width=1096, Height=779}, actualWindow={Width=1096, Height=779}, screens={X=0,Y=0,Width=1024,Height=720}
+LAYOUT 03-relatorio: DPI=96, requested={Width=1080, Height=740}, ClientSize={Width=1080, Height=740}, actualClient={Width=1080, Height=740}, Size={Width=1096, Height=779}, actualWindow={Width=1096, Height=779}, screens={X=0,Y=0,Width=1024,Height=720}
+PASS filtros, tabela e ações do relatório acessíveis nos dois tamanhos
+DIALOG Sonora · Detalhes da venda
+PASS detalhes modais mostram o pedido, os instrumentos e os totais reais
+DIALOG Exportar relatório de vendas
+DIALOG controls: hwnd=0x50394, class=Button, id=0, visible=False, enabled=True, text= | hwnd=0x40390, class=Button, id=1, visible=True, enabled=True, text=&Save | hwnd=0x30378, class=Button, id=2, visible=True, enabled=True, text=Cancel | hwnd=0x3036C, class=Button, id=1038, visible=False, enabled=False, text=&Help
+DIALOG BM_CLICK hwnd=0x40390 id=1 posted=True error=0
+DIALOG Relatório exportado
+DIALOG controls: hwnd=0x203B8, class=Button, id=2, visible=True, enabled=True, text=OK
+DIALOG BM_CLICK hwnd=0x203B8 id=2 posted=True error=0
+FAIL após 12 verificações nativas: System.InvalidOperationException: O diálogo de salvar não criou o arquivo CSV solicitado.
+   at Sonora.Desktop.Checks.Program.Expect(Boolean condition, String message) in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\Program.cs:line 344
+   at Sonora.Desktop.Checks.Program.<>c__DisplayClass3_0.<Main>b__12() in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\Program.cs:line 232
+   at Sonora.Desktop.Checks.Program.Check(String name, Action run) in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\Program.cs:line 337
+   at Sonora.Desktop.Checks.Program.Main(String[] args) in D:\a\Loja-Instrumento-C-Windows-Forms-\Loja-Instrumento-C-Windows-Forms-\tests\Sonora.Desktop.Checks\Program.cs:line 217
