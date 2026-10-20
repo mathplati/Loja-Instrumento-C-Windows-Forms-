@@ -83,7 +83,9 @@ No Windows, valide os formulários nativos e gere capturas com dados temporário
 dotnet run --project tests/Sonora.Desktop.Checks -c Release -- --screenshots artifacts/windows-native
 ```
 
-Essas verificações abrem a Splash, navegam pelas páginas, montam um pedido, conferem o total, preservam o carrinho, consultam uma venda gravada pelo serviço e verificam os filtros. Também conferem se os controles podem ser alcançados em dois tamanhos de janela. Elas não acionam a finalização modal nem o seletor de arquivo; esses passos continuam no roteiro manual. `Form.DrawToBitmap` produz as imagens das janelas reais. O teste usa exclusivamente um diretório temporário.
+As 17 verificações abrem a Splash, navegam pelas páginas, montam um pedido, conferem o total, preservam o carrinho e concluem a venda pelo botão real. Também abrem os detalhes, salvam e cancelam o seletor de arquivo CSV, conferem o arquivo gravado e testam `Ctrl+Enter` com a quantidade ainda em edição. A navegação é conferida em dois tamanhos de janela. `Form.DrawToBitmap` e `PrintWindow` produzem imagens reais dos formulários e diálogos; todos os dados ficam em um diretório temporário.
+
+A branch `feat/finalizar-entrega` inclui três commits principais de conclusão e ajustes de validação. O workflow `Validar e integrar entrega` valida essa versão no Windows e prepara os PRs para `dev` e depois `main`. A integração respeita as regras do repositório e depende de o GitHub permitir a criação de PRs pelo token do Actions; qualquer impedimento aparece no resumo da execução.
 
 Teste opcional da interface de apoio no Linux, com Python e Chromium instalados:
 

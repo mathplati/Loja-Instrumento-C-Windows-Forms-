@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Drawing.Imaging;
 using System.Diagnostics;
+using System.Text;
 using Sonora.Core;
 
 namespace Sonora.Desktop.Checks;
@@ -55,6 +56,9 @@ internal static class Program
             temporaryData = Path.Combine(Path.GetTempPath(), "sonora-desktop-checks-" + Guid.NewGuid().ToString("N"));
             var store = new SaleStore(Path.Combine(temporaryData, "sales.json"));
             using var menu = new MenuForm(store);
+            // O runner pode ter desktop de 1024 px. Limite explícito permite
+            // renderização fora da tela, mantendo o cliente solicitado completo.
+            menu.MaximumSize = new Size(1800, 1200);
             menu.StartPosition = FormStartPosition.Manual;
             menu.Location = Point.Empty;
             menu.Show();
@@ -125,15 +129,28 @@ internal static class Program
                 ExpectOrderTotal(salePage, 2150.10m);
             });
 
-            // Não aciona CompleteSale: esse botão abre uma confirmação modal. O pedido
-            // equivalente é gravado pelo serviço real, somente no arquivo temporário.
-            var recorded = store.Create(new SaleRequest(customer.Text, (PaymentMethod)payment.SelectedIndex, discount.Value,
-                [new("guitar-strato", 1), new("acoustic-folk", 1)]));
-            Check("serviço registra a venda e preserva o total ao reabrir os dados", () =>
+            Sale recorded = null!;
+            Check("botão Finalizar venda confirma o pedido real e limpa o formulário", () =>
             {
-                Expect(recorded.Total == 2150.10m, "O serviço divergiu do total exibido no formulário.");
+                var expectedCustomer = customer.Text;
+                NativeDialogs.Run(() => Click(salePage, "CompleteSale"), new DialogStep("Tudo em harmonia", dialog =>
+                {
+                    var message = NativeDialogs.Describe(dialog);
+                    Expect(message.Contains("Venda registrada!", StringComparison.Ordinal), "A confirmação não anunciou o registro da venda.");
+                    Expect(message.Contains(expectedCustomer, StringComparison.Ordinal), "A confirmação não contém o cliente informado.");
+                    Expect(message.Contains(2150.10m.ToString("C2", Brazilian), StringComparison.Ordinal), "A confirmação não contém o total esperado.");
+                    NativeDialogs.Capture(dialog, screenshots is null ? null : Path.Combine(screenshots, "05-venda-confirmada.png"));
+                    NativeDialogs.Confirm(dialog);
+                }));
+                recorded = store.List().Single();
+                Expect(recorded.Customer == expectedCustomer, "A venda persistiu com outro cliente.");
+                Expect(recorded.Total == 2150.10m && recorded.Quantity == 2, "O pedido gravado divergiu dos instrumentos e do total exibidos.");
                 var reopened = new SaleStore(Path.Combine(temporaryData, "sales.json")).List().Single();
                 Expect(reopened.Id == recorded.Id && reopened.Total == recorded.Total, "A venda não persistiu corretamente.");
+                Expect(!salePage.HasPendingOrder, "A venda concluída manteve instrumentos no carrinho.");
+                Expect(customer.Text.Length == 0 && discount.Value == 0 && payment.SelectedIndex == 0, "A venda concluída não limpou os campos do pedido.");
+                Expect(!Find<Button>(salePage, "CompleteSale").Enabled, "A venda concluída manteve a finalização habilitada.");
+                ExpectOrderTotal(salePage, 0m);
             });
 
             Click(menu, "Nav_reports");
@@ -163,6 +180,75 @@ internal static class Program
             Check("filtros, tabela e ações do relatório acessíveis nos dois tamanhos", () =>
                 InspectSizes(menu, screenshots, "03-relatorio", "FromDate", "ToDate", "ReportPayment", "ApplyFilters", "ExportCsv", "SalesGrid", "SaleDetails"));
 
+            Check("detalhes modais mostram o pedido, os instrumentos e os totais reais", () =>
+            {
+                NativeDialogs.Run(() => Click(reportPage, "SaleDetails"), new DialogStep("Sonora · Detalhes da venda", handle =>
+                {
+                    var dialog = Control.FromHandle(handle) as Form
+                        ?? throw new InvalidOperationException("O diálogo de detalhes não é um formulário Windows Forms.");
+                    dialog.Invoke(new Action(() =>
+                    {
+                        Expect(dialog.Modal && dialog.Visible, "Os detalhes não abriram como diálogo modal.");
+                        var labels = Descendants(dialog).OfType<Label>().Select(label => label.Text).ToArray();
+                        Expect(labels.Any(text => text.Contains(recorded.Id, StringComparison.Ordinal)), "Os detalhes omitiram o identificador completo do pedido.");
+                        Expect(labels.Any(text => text.Contains(recorded.Customer, StringComparison.Ordinal)), "Os detalhes omitiram o cliente.");
+                        foreach (var value in new[] { recorded.Subtotal, recorded.Discount, recorded.Total })
+                            Expect(labels.Any(text => text.Contains(value.ToString("C2", Brazilian), StringComparison.Ordinal)), "Os detalhes omitiram um dos totais do pedido.");
+                        var items = Descendants(dialog).OfType<DataGridView>().Single();
+                        Expect(items.Rows.Count == recorded.Items.Count, "Os detalhes exibiram outra quantidade de linhas.");
+                        for (var index = 0; index < recorded.Items.Count; index++)
+                        {
+                            var expected = recorded.Items[index];
+                            var actual = items.Rows[index];
+                            Expect(Equals(actual.Cells[0].Value, expected.Name) && Equals(actual.Cells[1].Value, expected.Brand), "Os detalhes exibiram outro instrumento ou marca.");
+                            Expect(Equals(actual.Cells[2].Value, expected.Quantity) && Equals(actual.Cells[3].Value, expected.UnitPrice)
+                                && Equals(actual.Cells[4].Value, expected.Total), "Os detalhes exibiram quantidade ou preços incorretos.");
+                        }
+                        NativeDialogs.Capture(handle, screenshots is null ? null : Path.Combine(screenshots, "06-detalhes-venda.png"));
+                        var close = dialog.AcceptButton as Button ?? throw new InvalidOperationException("O diálogo não tem botão de fechamento.");
+                        Expect(close.Text == "Fechar", "O botão padrão dos detalhes não é Fechar.");
+                        close.PerformClick();
+                    }));
+                }));
+                Expect(reportPage.Visible && salesGrid.Rows.Count == 1, "Fechar os detalhes alterou o relatório.");
+            });
+
+            var exportedFile = Path.Combine(temporaryData, "relatorio-validado.csv");
+            Check("exportação real salva CSV com BOM e confirma a venda exportada", () =>
+            {
+                NativeDialogs.Run(() => Click(reportPage, "ExportCsv"),
+                    new DialogStep("Exportar relatório de vendas", dialog =>
+                    {
+                        NativeDialogs.SetSaveFileName(dialog, exportedFile);
+                        NativeDialogs.Capture(dialog, screenshots is null ? null : Path.Combine(screenshots, "07-salvar-csv.png"));
+                        NativeDialogs.Confirm(dialog);
+                    }),
+                    new DialogStep("Relatório exportado", dialog =>
+                    {
+                        Expect(NativeDialogs.Describe(dialog).Contains("1 venda exportada com sucesso.", StringComparison.Ordinal), "A confirmação da exportação não informou uma venda.");
+                        NativeDialogs.Capture(dialog, screenshots is null ? null : Path.Combine(screenshots, "08-exportacao-confirmada.png"));
+                        NativeDialogs.Confirm(dialog);
+                    }));
+                Expect(File.Exists(exportedFile), "O diálogo de salvar não criou o arquivo CSV solicitado.");
+                Expect(File.ReadAllBytes(exportedFile).AsSpan().StartsWith(Encoding.UTF8.GetPreamble()), "O CSV não contém BOM UTF-8 para leitura no Excel.");
+                Expect(File.ReadAllText(exportedFile, Encoding.UTF8) == Reports.Csv([recorded]), "O CSV salvo diverge da venda exibida no relatório.");
+            });
+
+            Check("cancelar o diálogo de exportação preserva os arquivos e os dados", () =>
+            {
+                var canceledFile = Path.Combine(temporaryData, "exportacao-cancelada.csv");
+                var previousExport = File.ReadAllBytes(exportedFile);
+                NativeDialogs.Run(() => Click(reportPage, "ExportCsv"), new DialogStep("Exportar relatório de vendas", dialog =>
+                {
+                    NativeDialogs.SetSaveFileName(dialog, canceledFile);
+                    NativeDialogs.Cancel(dialog);
+                }));
+                Expect(!File.Exists(canceledFile), "Cancelar a exportação criou um arquivo.");
+                Expect(previousExport.SequenceEqual(File.ReadAllBytes(exportedFile)), "Cancelar a exportação alterou o CSV existente.");
+                Expect(store.List().Count == 1 && salesGrid.Rows.Count == 1, "Cancelar a exportação alterou os dados da venda.");
+                Expect(Find<Button>(reportPage, "ExportCsv").Enabled, "Cancelar a exportação bloqueou uma nova tentativa.");
+            });
+
             Check("filtro por dinheiro exclui a venda Pix e bloqueia ações sem resultados", () =>
             {
                 reportPayment.SelectedIndex = (int)PaymentMethod.Dinheiro + 1;
@@ -188,6 +274,37 @@ internal static class Program
                 to.Value = saleDay;
                 Click(reportPage, "ApplyFilters");
                 Expect(salesGrid.Rows.Count == 1, "O filtro do dia da venda não voltou a incluí-la.");
+            });
+
+            Check("Ctrl+Enter salva a quantidade digitada sem sair do campo numérico", () =>
+            {
+                Click(menu, "Nav_sale");
+                customer.Text = "Cliente Atalho";
+                Click(salePage, "Add_guitar-strato");
+                var amount = Find<NumericUpDown>(salePage, "Quantity_guitar-strato");
+                ExpectUnclipped(amount);
+                var editor = amount.Controls.OfType<TextBox>().Single();
+                menu.Activate();
+                editor.Focus();
+                Pump(menu);
+                Expect(editor.Focused, "O editor de quantidade não recebeu foco para o atalho.");
+                // O TextBox interno mantém UserEdit pendente. Ler amount.Value ou
+                // definir amount.Text validaria o número antes do atalho e mascararia a regressão.
+                editor.Text = "3";
+                Expect(editor.Focused && editor.Text == "3", "A edição perdeu foco antes de Ctrl+Enter.");
+                ExpectOrderTotal(salePage, 1290m);
+                NativeDialogs.Run(() => SendKeys.SendWait("^{ENTER}"), new DialogStep("Tudo em harmonia", dialog =>
+                {
+                    var message = NativeDialogs.Describe(dialog);
+                    Expect(message.Contains("Cliente Atalho", StringComparison.Ordinal), "O atalho não concluiu o pedido informado.");
+                    Expect(message.Contains(3870m.ToString("C2", Brazilian), StringComparison.Ordinal), "A confirmação do atalho perdeu a quantidade digitada.");
+                    NativeDialogs.Capture(dialog, screenshots is null ? null : Path.Combine(screenshots, "09-atalho-quantidade-confirmada.png"));
+                    NativeDialogs.Confirm(dialog);
+                }));
+                var saved = store.List().Single(sale => sale.Customer == "Cliente Atalho");
+                Expect(saved.Quantity == 3 && saved.Items.Single().Quantity == 3 && saved.Total == 3870m,
+                    "Ctrl+Enter gravou a quantidade anterior à edição pendente.");
+                Expect(store.List().Count == 2 && !salePage.HasPendingOrder, "O atalho não registrou uma única venda e limpou o carrinho.");
             });
 
             Console.WriteLine($"\n{passed} verificações nativas aprovadas.");
@@ -267,17 +384,29 @@ internal static class Program
         {
             window.ClientSize = size;
             Pump(window);
-            Expect(window.ClientSize == size,
-                $"A sessão Windows limitou o cliente a {window.ClientSize}; é necessário acomodar {size.Width}x{size.Height}.");
+            NativeDialogs.EnsureClientSize(window, size);
+            ExpectWindowSize(window, size, prefix);
             foreach (var name in names) ExpectUnclipped(Find<Control>(window, name));
             foreach (var scroll in Descendants(window).OfType<ScrollableControl>().Where(control => control.AutoScroll).Reverse())
                 scroll.AutoScrollPosition = Point.Empty;
             Pump(window);
+            NativeDialogs.EnsureClientSize(window, size);
+            ExpectWindowSize(window, size, prefix);
             if (screenshots is null) continue;
             using var bitmap = new Bitmap(window.Width, window.Height);
             window.DrawToBitmap(bitmap, new Rectangle(Point.Empty, window.Size));
             bitmap.Save(Path.Combine(screenshots, $"{prefix}-{size.Width}x{size.Height}.png"), ImageFormat.Png);
         }
+    }
+
+    private static void ExpectWindowSize(Form window, Size requested, string prefix)
+    {
+        var actualClient = NativeDialogs.ActualClientSize(window.Handle);
+        var actualWindow = NativeDialogs.ActualWindowSize(window.Handle);
+        var screens = string.Join(", ", Screen.AllScreens.Select(screen => screen.WorkingArea.ToString()));
+        Console.WriteLine($"LAYOUT {prefix}: DPI={window.DeviceDpi}, requested={requested}, ClientSize={window.ClientSize}, actualClient={actualClient}, Size={window.Size}, actualWindow={actualWindow}, screens={screens}");
+        Expect(window.ClientSize == requested && actualClient == requested && window.Size == actualWindow,
+            $"A sessão Windows não acomodou o tamanho solicitado: cliente {requested}, cliente real {actualClient}, janela real {actualWindow}, tamanho gerenciado {window.Size}.");
     }
 
     private static void ExpectUnclipped(Control control)

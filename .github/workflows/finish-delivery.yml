@@ -1,0 +1,246 @@
+name: Validar e integrar entrega
+
+on:
+  push:
+    branches: [feat/finalizar-entrega]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: finalizar-entrega
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    name: Validar aplicação e capturar Windows Forms
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compilar solução
+        run: dotnet build Sonora.sln -c Release -m:2
+      - name: Verificar regras de venda
+        run: dotnet run --project tests/Sonora.Checks -c Release --no-build
+      - name: Verificar formulários e capturar telas nativas
+        shell: cmd
+        run: |
+          dotnet run --project tests/Sonora.Desktop.Checks -c Release --no-build -- --screenshots artifacts/windows-native > native-checks.log 2>&1
+          set "native_status=%ERRORLEVEL%"
+          type native-checks.log
+          echo ## Verificacoes nativas do Windows>>"%GITHUB_STEP_SUMMARY%"
+          echo ```text>>"%GITHUB_STEP_SUMMARY%"
+          type native-checks.log>>"%GITHUB_STEP_SUMMARY%"
+          echo ```>>"%GITHUB_STEP_SUMMARY%"
+          exit /b %native_status%
+      - name: Gerar aplicativo Windows x64
+        run: dotnet publish src/Sonora.Desktop -c Release -r win-x64 --self-contained false -p:DebugType=None -o artifacts/windows -m:2
+      - name: Guardar capturas nativas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sonora-telas-Windows-Forms
+          path: |
+            artifacts/windows-native/*.png
+            native-checks.log
+          if-no-files-found: error
+      - name: Guardar pacote Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sonora-Windows-x64
+          path: artifacts/windows/
+          if-no-files-found: error
+
+  evidence:
+    name: Publicar evidências da execução
+    needs: [windows, finish]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Sonora-telas-Windows-Forms
+          path: evidence
+      - uses: actions/download-artifact@v4
+        if: needs.finish.result != 'skipped'
+        with:
+          name: Sonora-integracao
+          path: evidence
+      - name: Guardar log e capturas em branch de evidências
+        working-directory: evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '# Evidências Windows Forms\n\nExecução: %s\n\nDados e clientes são fictícios, exclusivos dos testes.\n\n[Resultado dos testes](native-checks.log)\n\n' "$GITHUB_RUN_ID" > README.md
+          if test -f integration.log; then printf '[Resultado da integração dos PRs](integration.log)\n\n' >> README.md; fi
+          while IFS= read -r file; do
+            printf '\n![%s](%s)\n' "$(basename "$file")" "$file" >> README.md
+          done < <(find artifacts -name '*.png' -type f | sort)
+          git init -b snapshot
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .
+          git commit -m "ci: guardar evidências Windows da execução $GITHUB_RUN_ID"
+          git remote add origin "https://github.com/$GH_REPO.git"
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push origin "HEAD:refs/heads/ci/evidencias-$GITHUB_RUN_ID"
+
+  finish:
+    name: Integrar PRs após validação Windows
+    needs: windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VALIDATED_SHA: ${{ github.sha }}
+      FEATURE_BRANCH: feat/finalizar-entrega
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Criar e integrar PRs com verificações de ancestralidade
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s inherit_errexit
+          exec > >(tee -a "$GITHUB_WORKSPACE/integration.log") 2>&1
+          work_dir="$(mktemp -d)"
+          trap 'rm -rf "$work_dir"' EXIT
+
+          fail() {
+            printf '::error::%s\n' "$1" >&2
+            printf '\n**Integração interrompida:** %s\n' "$1" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
+
+          # A saída de erro do gh é preservada para diagnosticar permissões ou regras.
+          # O token só é fornecido pela variável GH_TOKEN; nunca é exibido.
+          run_gh() {
+            local operation="$1"
+            shift
+            if "$@" > "$work_dir/gh-output" 2> "$work_dir/gh-error"; then
+              cat "$work_dir/gh-output"
+              return
+            fi
+            {
+              printf '\n**Falha do GitHub CLI:** %s\n\n' "$operation"
+              printf '```text\n'
+              cat "$work_dir/gh-error"
+              printf '\n```\n'
+              if [[ "$operation" == "Criar PR" ]]; then
+                printf '\nSe o erro indicar que GitHub Actions não pode criar PRs, habilite **Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests** e execute novamente este workflow. A configuração da organização também precisa permitir essa opção. Este workflow cria PRs e não aprova PRs.\n'
+              fi
+              printf '\nRegras de proteção, revisões humanas e verificações obrigatórias continuam sendo respeitadas. Nenhuma opção administrativa ou de bypass é usada.\n'
+            } >> "$GITHUB_STEP_SUMMARY"
+            cat "$work_dir/gh-error" >&2
+            exit 1
+          }
+
+          refresh_refs() {
+            git fetch --no-tags origin \
+              "refs/heads/$FEATURE_BRANCH:refs/remotes/origin/$FEATURE_BRANCH" \
+              refs/heads/dev:refs/remotes/origin/dev \
+              refs/heads/main:refs/remotes/origin/main
+            [[ "$(git rev-parse "origin/$FEATURE_BRANCH")" == "$VALIDATED_SHA" ]] || \
+              fail 'A feature avançou após a validação. Aguarde a execução correspondente ao novo commit.'
+          }
+
+          ensure_pr() {
+            local base="$1" head="$2" expected_sha="$3" title="$4" body_file="$5"
+            local prs count number actual_sha
+            prs="$(run_gh 'Consultar PRs' gh pr list --base "$base" --head "$head" --state open --limit 100 --json number,headRefOid)"
+            count="$(jq 'length' <<< "$prs")"
+            [[ "$count" -le 1 ]] || fail "Há mais de um PR aberto de $head para $base."
+            if [[ "$count" == 0 ]]; then
+              run_gh 'Criar PR' gh pr create --base "$base" --head "$head" --title "$title" --body-file "$body_file" > "$work_dir/created-pr"
+              prs="$(run_gh 'Consultar PR criado' gh pr list --base "$base" --head "$head" --state open --limit 100 --json number,headRefOid)"
+              [[ "$(jq 'length' <<< "$prs")" == 1 ]] || fail 'Não foi possível identificar o PR criado.'
+            fi
+            number="$(jq -r '.[0].number' <<< "$prs")"
+            actual_sha="$(jq -r '.[0].headRefOid' <<< "$prs")"
+            [[ "$actual_sha" == "$expected_sha" ]] || fail "O head do PR #$number mudou após a validação."
+            printf '%s\n' "$number"
+          }
+
+          cat > "$work_dir/feature-pr.md" <<'EOF'
+          Conclui a entrega da loja Sonora e integra o trabalho à branch dev.
+
+          A revisão técnica automatizada executou build Release, verificações do domínio, verificações nativas dos formulários Windows Forms e geração do pacote Windows x64. As capturas nativas e o aplicativo estão nos artefatos da execução do GitHub Actions.
+
+          Este PR é criado e integrado pelo workflow após as verificações automatizadas. Não houve revisão humana nem aprovação de outro integrante registrada por esta automação. As regras de proteção do repositório continuam aplicáveis.
+          EOF
+
+          cat > "$work_dir/release-pr.md" <<'EOF'
+          Entrega a versão validada da loja Sonora na branch main.
+
+          A revisão técnica automatizada confirmou que a árvore de dev é igual à árvore da feature validada no Windows e que main é ancestral de dev antes de solicitar o merge. A validação inclui build Release, regras de venda, formulários nativos, capturas e publicação do aplicativo Windows x64.
+
+          Este PR é criado e integrado pelo workflow. Não houve revisão humana nem aprovação de outro integrante registrada por esta automação. As regras de proteção do repositório continuam aplicáveis.
+          EOF
+
+          [[ "$(git rev-parse HEAD)" == "$VALIDATED_SHA" ]] || fail 'O checkout diverge do commit validado no Windows.'
+          validated_tree="$(git rev-parse "$VALIDATED_SHA^{tree}")"
+          refresh_refs
+          printf '## Integração da entrega\n\nCommit validado no Windows: `%s`.\n' "$VALIDATED_SHA" >> "$GITHUB_STEP_SUMMARY"
+
+          # Reexecuções só pulam um merge já concluído se ancestralidade e conteúdo coincidirem.
+          if git merge-base --is-ancestor "$VALIDATED_SHA" origin/dev && \
+              [[ "$(git rev-parse 'origin/dev^{tree}')" == "$validated_tree" ]]; then
+            printf '\nA feature já está integrada em dev com o conteúdo validado.\n' >> "$GITHUB_STEP_SUMMARY"
+          else
+            dev_head="$(git rev-parse origin/dev)"
+            [[ "$dev_head" == "$(git merge-base HEAD origin/dev)" ]] || \
+              fail 'dev avançou após a criação da feature. Atualize a feature e valide novamente.'
+            feature_pr="$(ensure_pr dev "$FEATURE_BRANCH" "$VALIDATED_SHA" 'Concluir entrega da loja Sonora' "$work_dir/feature-pr.md")"
+            refresh_refs
+            [[ "$(git rev-parse origin/dev)" == "$dev_head" && "$dev_head" == "$(git merge-base HEAD origin/dev)" ]] || \
+              fail 'dev avançou durante a preparação do PR. Atualize a feature e valide novamente.'
+            run_gh 'Integrar feature em dev' gh pr merge "$feature_pr" --merge --match-head-commit "$VALIDATED_SHA"
+            printf '\nFeature → dev: PR #%s integrado.\n' "$feature_pr" >> "$GITHUB_STEP_SUMMARY"
+            refresh_refs
+          fi
+
+          git merge-base --is-ancestor "$VALIDATED_SHA" origin/dev || fail 'dev não contém o commit validado.'
+          [[ "$(git rev-parse 'origin/dev^{tree}')" == "$validated_tree" ]] || fail 'A árvore de dev diverge da feature validada. main não será alterada.'
+
+          if git merge-base --is-ancestor origin/dev origin/main && \
+              [[ "$(git rev-parse 'origin/main^{tree}')" == "$validated_tree" ]]; then
+            printf '\nA entrega já está integrada em main com o conteúdo validado.\n' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          git merge-base --is-ancestor origin/main origin/dev || fail 'main contém commits ausentes de dev. Reconcilie as branches e valide novamente.'
+          dev_head="$(git rev-parse origin/dev)"
+          main_head="$(git rev-parse origin/main)"
+          release_pr="$(ensure_pr main dev "$dev_head" 'Entregar versão validada da loja Sonora' "$work_dir/release-pr.md")"
+          refresh_refs
+          [[ "$(git rev-parse origin/dev)" == "$dev_head" && "$(git rev-parse origin/main)" == "$main_head" ]] || \
+            fail 'dev ou main avançou durante a preparação do PR de entrega. Execute novamente após conferir as branches.'
+          [[ "$(git rev-parse 'origin/dev^{tree}')" == "$validated_tree" ]] || fail 'O conteúdo de dev mudou após a validação.'
+          git merge-base --is-ancestor origin/main origin/dev || fail 'main deixou de ser ancestral de dev.'
+          run_gh 'Integrar dev em main' gh pr merge "$release_pr" --merge --match-head-commit "$dev_head"
+          refresh_refs
+          git merge-base --is-ancestor "$dev_head" origin/main || fail 'O merge de dev em main não foi confirmado.'
+          [[ "$(git rev-parse 'origin/main^{tree}')" == "$validated_tree" ]] || fail 'O conteúdo final de main diverge do conteúdo validado. Confira alterações concorrentes.'
+          printf '\nDev → main: PR #%s integrado. A árvore final de main corresponde à feature validada.\n\nRevisão técnica automatizada; nenhuma revisão humana foi registrada. A branch da feature foi preservada.\n' "$release_pr" >> "$GITHUB_STEP_SUMMARY"
+      - name: Guardar resultado da integração
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sonora-integracao
+          path: integration.log
+          if-no-files-found: warn

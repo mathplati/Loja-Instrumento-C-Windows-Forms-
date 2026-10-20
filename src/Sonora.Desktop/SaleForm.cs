@@ -47,6 +47,7 @@ public sealed class SaleForm : Form
         title.AutoSize = false;
         title.Dock = DockStyle.Fill;
         title.AutoEllipsis = true;
+        title.Margin = Padding.Empty;
         var subtitle = FieldLabel("Escolha os instrumentos. A próxima história é por conta do cliente.");
         subtitle.ForeColor = Ui.Muted;
         subtitle.AutoEllipsis = true;
@@ -502,6 +503,12 @@ public sealed class SaleForm : Form
         finish.Enabled = false;
         try
         {
+            // Value confirma o texto ainda em edição. Ctrl+Enter pode chegar antes
+            // de LostFocus e, sem isso, cart ainda conteria a quantidade anterior.
+            foreach (var id in cart.Keys.ToArray())
+                _ = orderLines.Controls.Find("Quantity_" + id, true).OfType<NumericUpDown>().Single().Value;
+            _ = discount.Value;
+            finish.Enabled = false;
             sale = store.Create(new SaleRequest(customer.Text, (PaymentMethod)payment.SelectedIndex, discount.Value,
                 cart.Select(item => new CartItem(item.Key, item.Value)).ToArray()));
         }
